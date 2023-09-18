@@ -1,6 +1,6 @@
 "use strict";
 
-import { app, protocol, BrowserWindow } from "electron";
+import { app, protocol, BrowserWindow, ipcMain } from "electron";
 import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
 import installExtension, { VUEJS_DEVTOOLS } from "electron-devtools-installer";
 const isDevelopment = process.env.NODE_ENV !== "production";
@@ -62,6 +62,13 @@ app.on("ready", async () => {
     }
   }
   createWindow();
+});
+
+// 使用ipcMain.on方法监听 exportExcel 事件
+ipcMain.on("exportExcel", (event, arg) => {
+  console.log(arg);
+  // 使用下面方法对产生事件的对象进行应答，应答时事件名为completeExcel，内容为success 或者 fail
+  event.reply("completeExcel", "success");
 });
 
 // Exit cleanly on request from parent process in development mode.

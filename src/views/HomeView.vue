@@ -21,7 +21,7 @@
           style="margin-right: 10px"
         >
         </el-date-picker>
-        <el-button type="primary">导出</el-button>
+        <el-button type="primary" @click="exportExcel">导出</el-button>
       </div>
       <el-table
         ref="table"
@@ -149,6 +149,7 @@
 </template>
 
 <script>
+import * as XLSX from "xlsx";
 export default {
   name: "HomeView",
   data() {
@@ -419,7 +420,58 @@ export default {
       let index = this.tableData.findIndex((item) => item.id === e.id);
       this.tableData.splice(index, 1);
     },
+
+    // 导出
+    exportExcel() {
+      let title = this.monthArr.map((item) => item.label);
+      let attribute = this.monthArr.map((item) => item.attribute);
+      let content = this.tableData.map((item) => {
+        return [
+          item.contractNumber,
+          item.tenant,
+          item.address,
+          item.rent,
+          item.startDate,
+          item.endDate,
+          item.diffDay,
+          item.diffDay ? ((item.rent || 0) / item.diffDay).toFixed(2) : 0,
+          ...attribute.map((itemA) => {
+            return item[itemA];
+          }),
+          "",
+          item.totalPrice,
+        ];
+      });
+      console.log(content);
+      let data = [
+        [
+          "合同号",
+          "承租户",
+          "地址",
+          "本期房租",
+          "合同起始日期",
+          "合同终止日期",
+          "合同天数",
+          "日租金金额（元）",
+          ...title,
+          "合计权责金额",
+          this.chooseYear + "年度金额（元）",
+        ],
+        ...content,
+      ];
+      console.log(XLSX);
+      let workbook = XLSX.utils.book_new();
+      let worksheet = XLSX.utils.aoa_to_sheet(data);
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+      XLSX.writeFile(workbook, "test.xlsx");
+      //   ipcRenderer.send("exportExcel", this.tableData);
+      //   // 使用ipcRenderer.on方法监听 main-reply 事件
+      //   ipcRenderer.on("completeExcel", (event, arg) => {
+      //     console.log(arg);
+      //   });
+    },
   },
+
   mounted() {
     this.chooseYear = new Date().getFullYear();
     this.chooseMonth = [

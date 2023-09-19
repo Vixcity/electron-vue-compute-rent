@@ -126,21 +126,15 @@
           width="180"
         >
         </el-table-column>
-        <el-table-column fixed="right" label="操作" width="120">
+        <el-table-column fixed="right" label="操作" width="180">
           <template slot-scope="scope">
-            <el-button
-              type="primary"
-              icon="el-icon-plus"
-              circle
-              @click="addTableData"
-            ></el-button>
+            <el-button type="primary" @click="addTableData">添加</el-button>
             <el-button
               type="danger"
-              icon="el-icon-delete"
               :disabled="scope.row.id === 0"
-              circle
               @click="deleteTableData(scope.row)"
-            ></el-button>
+              >删除</el-button
+            >
           </template>
         </el-table-column>
       </el-table>

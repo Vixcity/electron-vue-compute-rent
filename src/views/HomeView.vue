@@ -22,6 +22,16 @@
         >
         </el-date-picker>
         <el-button type="primary" @click="exportExcel">导出</el-button>
+        <el-upload
+          ref="upload"
+          action="https://jsonplaceholder.typicode.com/posts/"
+          :before-upload="upload"
+          :show-file-list="false"
+          accept=".xlsx,.xls"
+          style="width: 100px; display: inline-flex; margin-left: 10px"
+        >
+          <el-button> 导入excel </el-button>
+        </el-upload>
       </div>
       <el-table
         ref="table"
@@ -131,7 +141,7 @@
             <el-button type="primary" @click="addTableData">添加</el-button>
             <el-button
               type="danger"
-              :disabled="scope.row.id === 0"
+              :disabled="tableData.length === 1"
               @click="deleteTableData(scope.row)"
               >删除</el-button
             >
@@ -254,6 +264,7 @@ export default {
         "Nov",
         "Dec",
       ],
+      showImport: false,
     };
   },
   methods: {
@@ -365,7 +376,6 @@ export default {
 
           e[str] = ((Number(e.rent) / e.diffDay) * daysLen).toFixed(2);
         } else {
-          console.log(startIndex, endIndex, i);
           e[str] = "0.00";
         }
       }
@@ -436,7 +446,7 @@ export default {
           item.totalPrice,
         ];
       });
-      console.log(content);
+
       let data = [
         [
           "合同号",
@@ -453,16 +463,82 @@ export default {
         ],
         ...content,
       ];
-      console.log(XLSX);
       let workbook = XLSX.utils.book_new();
       let worksheet = XLSX.utils.aoa_to_sheet(data);
       XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
-      XLSX.writeFile(workbook, "test.xlsx");
-      //   ipcRenderer.send("exportExcel", this.tableData);
-      //   // 使用ipcRenderer.on方法监听 main-reply 事件
-      //   ipcRenderer.on("completeExcel", (event, arg) => {
-      //     console.log(arg);
-      //   });
+      XLSX.writeFile(workbook, this.chooseYear + "年导出数据.xlsx");
+    },
+
+    // 表格导入
+    upload(file) {
+      this.$confirm("导入表格会覆盖已经填写好的表格, 是否继续?", "注意", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+      })
+        .then(() => {
+          let files = { 0: file };
+          this.readExcel1(files);
+        })
+        .catch(() => {});
+    },
+
+    // 读取表格导入
+    readExcel1(files) {
+      this.tableData = [];
+      // console.log(files);
+      // 此处判断不严谨，思路只是根据传入的参数校验数据的完整性，可根据自己需求修改
+      // 如果没有文件名
+      if (files.length <= 0) {
+        return;
+      }
+      if (!/\.(xls|xlsx)$/.test(files[0].name.toLowerCase())) {
+        this.$Message.error("上传格式不正确，请上传xls或者xlsx格式");
+        return;
+      }
+
+      const fileReader = new FileReader();
+      fileReader.onload = (ev) => {
+        try {
+          const data = ev.target.result;
+          const workbook = XLSX.read(data, {
+            type: "binary",
+          });
+          // 取第一张表
+          const wsname = workbook.SheetNames[0];
+          // 生成json表格内容
+          const ws = XLSX.utils.sheet_to_json(workbook.Sheets[wsname]);
+
+          // 后续为自己对ws数据的处理
+          // console.log(ws, "ws");
+          let arr = this.changeImportData(ws);
+
+          arr.forEach((item, index) => {
+            item.id = index;
+            this.changeDiffDay(item);
+          });
+
+          this.tableData = arr;
+        } catch (e) {
+          return false;
+        }
+      };
+      fileReader.readAsBinaryString(files[0]);
+    },
+    changeImportData(ws) {
+      let dataNew = []; //新数组
+      ws.map((item) => {
+        let obj = {
+          contractNumber: item["合同号"],
+          tenant: item["承租户"],
+          address: item["地址"],
+          rent: item["本期房租"],
+          startDate: item["合同起始日期"],
+          endDate: item["合同终止日期"],
+        };
+        dataNew.push(obj);
+      });
+      return dataNew;
     },
   },
 

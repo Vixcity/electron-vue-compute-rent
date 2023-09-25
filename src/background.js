@@ -1,6 +1,6 @@
 "use strict";
 
-import { app, protocol, BrowserWindow, ipcMain } from "electron";
+import { app, protocol, BrowserWindow, ipcMain, dialog } from "electron";
 import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
 import installExtension, { VUEJS_DEVTOOLS } from "electron-devtools-installer";
 const isDevelopment = process.env.NODE_ENV !== "production";
@@ -9,6 +9,34 @@ const isDevelopment = process.env.NODE_ENV !== "production";
 protocol.registerSchemesAsPrivileged([
   { scheme: "app", privileges: { secure: true, standard: true } },
 ]);
+
+const closeWin = (win) => {
+  win.on("close", (e) => {
+    e.preventDefault(); //阻止默认行为，一定要有
+    dialog
+      .showMessageBox({
+        type: "info",
+        title: "Information",
+        cancelId: 2,
+        defaultId: 0,
+        message: "确定要关闭吗？",
+        buttons: ["最小化", "直接退出"],
+      })
+      .then((result) => {
+        if (result.response == 0) {
+          //阻止默认行为
+          e.preventDefault();
+          win.minimize();
+        } else if (result.response == 1) {
+          win = null;
+          app.exit();
+        }
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  });
+};
 
 async function createWindow() {
   // Create the browser window.
@@ -22,6 +50,8 @@ async function createWindow() {
       contextIsolation: !process.env.ELECTRON_NODE_INTEGRATION,
     },
   });
+
+  closeWin(win);
 
   if (process.env.WEBPACK_DEV_SERVER_URL) {
     // Load the url of the dev server if in development mode
